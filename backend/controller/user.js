@@ -2,29 +2,39 @@ const express = require('express');
 const path = require('path');
 const User=require('../model/user');
 const router=express.Router();
-const upload=require('../multer.js');
+const {upload}=require('../multer');
 const ErrorHandler = require('../utils/ErrorHandler');
 
 
-router.post("/create-user", upload.single("file"),async(req, res,next) =>{
-            const {name,enails,password}=req.body;
+router.post("/create-user",upload.single("file"),async(req, res,next) =>{
+    
+                const {name,email,password}=req.body;
 
             const userEmail=await User.findOne({email});
+            console.log(userEmail);
+           
 
             if(userEmail){
                 return next(new ErrorHandler("User already exists",400));
             }
-            const filename=req.files.filename;
+            const filename=req.file.filename;
+            
             const fileurl = path.join(filename);
 
             const user={
                 name:name,
-                email:enails,
+                email:email,
                 password:password,
                 avatar:fileurl,
             }
             
-            console.log(user);
+            //saving to the mongodb database
+
+            const newUser =await User.create(user);
+            res.status(201).json({
+                success: true,
+                newUser,
+            });
 });
 
 module.exports=router;
