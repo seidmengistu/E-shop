@@ -22,10 +22,11 @@ router.post("/create-user", upload.single("file"), async (req, res, next) => {
       if (err) {
         console.log(err);
         res.status(500).json({ message: "Error deleting file" });
-      } 
+      }
     });
     return next(new ErrorHandler("User already exists", 400));
   }
+
   const filename = req.file.filename;
 
   const fileurl = path.join(filename);
@@ -36,6 +37,7 @@ router.post("/create-user", upload.single("file"), async (req, res, next) => {
     password: password,
     avatar: fileurl,
   };
+
   // create activation token
   const createActivationToken = (user) => {
     return jwt.sign(user, process.env.ACTIVATION_SECRET, {
@@ -53,34 +55,46 @@ router.post("/create-user", upload.single("file"), async (req, res, next) => {
       subject: "Activate your account",
       message: `Hello ${user.name}, please click on the link to activate your account: ${activationUrl}`,
     });
+
+
+    //messag returned after successful request
+
+    // config: {transitional: {…}, adapter: Array(2), transformRequest: Array(1), transformResponse: Array(1), timeout: 0, …}
+    // data: {success: true, message: 'please check your email:- zohit@mailinator.com to activate your account!'}
+    // headers: AxiosHeaders {content-length: '101', content-type: 'application/json; charset=utf-8'}
+    // request:XMLHttpRequest {onreadystatechange: null, readyState: 4, timeout: 0, withCredentials: false, upload: XMLHttpRequestUpload, …}
+    // status: 201
+    // statusText: "Created"
+
     res.status(201).json({
       success: true,
       message: `please check your email:- ${user.email} to activate your account!`,
     });
+
+    
   } catch (error) {
     return next(new ErrorHandler(error.message, 500));
   }
 
-
   // activate user
-router.post(
+  router.post(
     "/activation",
     catchAsyncErrors(async (req, res, next) => {
       try {
         const { activation_token } = req.body;
-  
+
         const newUser = jwt.verify(
           activation_token,
           process.env.ACTIVATION_SECRET
         );
-  
+
         if (!newUser) {
           return next(new ErrorHandler("Invalid token", 400));
         }
         const { name, email, password, avatar } = newUser;
-  
+
         let user = await User.findOne({ email });
-  
+
         if (user) {
           return next(new ErrorHandler("User already exists", 400));
         }
@@ -90,14 +104,13 @@ router.post(
           avatar,
           password,
         });
-  
+
         sendToken(user, 201, res);
       } catch (error) {
         return next(new ErrorHandler(error.message, 500));
       }
     })
   );
-  
 });
 
 module.exports = router;
