@@ -11,9 +11,9 @@ const catchAsyncErrors = require("../middleware/catchAsyncErrors");
 const sendToken = require("../utils/jwtToken");
 
 router.post("/create-user", upload.single("file"), async (req, res, next) => {
-  const { name, email, password } = req.body;
+  const { name, email, password } = req.body; //get the name,email and password from the request body to sav ein to the database
 
-  const userEmail = await User.findOne({ email });
+  const userEmail = await User.findOne({ email }); //serach the email from the user Data schema
 
   if (userEmail) {
     const filename = req.file.filename;
@@ -38,14 +38,14 @@ router.post("/create-user", upload.single("file"), async (req, res, next) => {
     avatar: fileurl,
   };
 
-  // create activation token
+  // create activation token function
   const createActivationToken = (user) => {
     return jwt.sign(user, process.env.ACTIVATION_SECRET, {
       expiresIn: "5m",
     });
   };
 
-  const activationToken = createActivationToken(user);
+  const activationToken = createActivationToken(user);  
 
   const activationUrl = `http://localhost:3000/activation/${activationToken}`;
 
@@ -82,7 +82,15 @@ router.post("/create-user", upload.single("file"), async (req, res, next) => {
     catchAsyncErrors(async (req, res, next) => {
       try {
         const { activation_token } = req.body;
+        /* The jwt.verify function is then used to verify the activation_token. 
+        This function decodes the token using the process.env.ACTIVATION_SECRET, 
+        which is presumably a secret key stored in the application's environment variables. 
+        If the token is valid, it will return an object representing the new user.
 
+        https://betterprogramming.pub/14-useful-packages-every-react-developer-should-know-55b47a325d3
+        https://awesomejs.dev/for/react/
+        https://www.npmjs.com/package/react-toastify
+         */
         const newUser = jwt.verify(
           activation_token,
           process.env.ACTIVATION_SECRET
@@ -91,6 +99,7 @@ router.post("/create-user", upload.single("file"), async (req, res, next) => {
         if (!newUser) {
           return next(new ErrorHandler("Invalid token", 400));
         }
+        //If the token is valid, the code extracts the user's name, email, password, and avatar from the decoded newUser object.
         const { name, email, password, avatar } = newUser;
 
         let user = await User.findOne({ email });
