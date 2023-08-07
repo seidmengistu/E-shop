@@ -1,7 +1,7 @@
 const ErrorHandler = require("../utils/ErrorHandler");
 
 module.exports = (err, req, res, next) => {
-  err.statusCode = err.statusCode || 5000;
+  err.statusCode = err.statusCode || 500;
   err.message = err.message || "Internal Server Error";
 
   //wrong mongodb id error
@@ -28,12 +28,12 @@ module.exports = (err, req, res, next) => {
   // jwt expired
 
   if (err.name === "TokenExpiredError") {
-    const message = "Your url is expired please try again later";
+    const message = `Your url is expired please try again later`;
     err = new ErrorHandler(message, 400);
   }
 
   res.status(err.statusCode).json({
     success: false,
-    message: err.nessage,
+    message: err.message,
   });
 };

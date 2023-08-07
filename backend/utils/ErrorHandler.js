@@ -38,13 +38,15 @@ function someFunction() {
 }
 In this example, when someFunction() is called and the specified error condition is met, it will throw an instance of the ErrorHandler class with the given message and status code. This can be caught and handled by an appropriate error handler in the calling code or higher up in the call stack.
 */
-class ErrorHandler extends Error {
-  constructor(message, statusCode) {
-    super(message);
-    this.statusCode = statusCode;
+class ErrorHandler extends Error{
+    constructor(message,statusCode){
+        super(message);
+        this.statusCode = statusCode
+        
 
-    Error.captureStackTrace(this, this.constructor);
-  }
+        Error.captureStackTrace(this,this.constructor);
+
+    }
+    
 }
-
-module.exports = ErrorHandler;
+module.exports = ErrorHandler

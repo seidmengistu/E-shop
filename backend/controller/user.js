@@ -9,7 +9,10 @@ const jwt = require("jsonwebtoken");
 const sendMail = require("../utils/sendMail");
 const catchAsyncErrors = require("../middleware/catchAsyncErrors");
 const sendToken = require("../utils/jwtToken");
+const user = require("../model/user");
+const { request } = require("http");
 
+//create user
 router.post("/create-user", upload.single("file"), async (req, res, next) => {
   const { name, email, password } = req.body; //get the name,email and password from the request body to sav ein to the database
 
@@ -45,7 +48,7 @@ router.post("/create-user", upload.single("file"), async (req, res, next) => {
     });
   };
 
-  const activationToken = createActivationToken(user);  
+  const activationToken = createActivationToken(user);
 
   const activationUrl = `http://localhost:3000/activation/${activationToken}`;
 
@@ -55,7 +58,6 @@ router.post("/create-user", upload.single("file"), async (req, res, next) => {
       subject: "Activate your account",
       message: `Hello ${user.name}, please click on the link to activate your account: ${activationUrl}`,
     });
-
 
     //messag returned after successful request
 
@@ -70,13 +72,15 @@ router.post("/create-user", upload.single("file"), async (req, res, next) => {
       success: true,
       message: `please check your email:- ${user.email} to activate your account!`,
     });
-
-    
   } catch (error) {
     return next(new ErrorHandler(error.message, 500));
   }
 
-  // activate user
+  
+
+});
+
+// activate user
   router.post(
     "/activation",
     catchAsyncErrors(async (req, res, next) => {
@@ -120,6 +124,39 @@ router.post("/create-user", upload.single("file"), async (req, res, next) => {
       }
     })
   );
-});
+
+// login user
+router.post(
+  "/login-user",
+  catchAsyncErrors(async (req, res, next) => {
+    try {
+     
+      const { email, password } = req.body;
+      
+
+      if (!email || !password) {
+        return next(new ErrorHandler("Please provide the all fields!", 400));
+      }
+
+      const user = await User.findOne({ email }).select("+password");
+
+      if (!user) {
+        return next(new ErrorHandler("User doesn't exists!", 400));
+      }
+
+      const isPasswordValid = await user.comparePassword(password);
+
+      if (!isPasswordValid) {
+        return next(
+          new ErrorHandler(`Please provide the correct information`, 400)
+        );
+      }
+
+      sendToken(user, 201, res);
+    } catch (error) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  })
+);
 
 module.exports = router;
