@@ -11,6 +11,7 @@ const catchAsyncErrors = require("../middleware/catchAsyncErrors");
 const sendToken = require("../utils/jwtToken");
 const user = require("../model/user");
 const { request } = require("http");
+const { isAuthenticated } = require("../middleware/auth");
 
 //create user
 router.post("/create-user", upload.single("file"), async (req, res, next) => {
@@ -75,18 +76,15 @@ router.post("/create-user", upload.single("file"), async (req, res, next) => {
   } catch (error) {
     return next(new ErrorHandler(error.message, 500));
   }
-
-  
-
 });
 
 // activate user
-  router.post(
-    "/activation",
-    catchAsyncErrors(async (req, res, next) => {
-      try {
-        const { activation_token } = req.body;
-        /* The jwt.verify function is then used to verify the activation_token. 
+router.post(
+  "/activation",
+  catchAsyncErrors(async (req, res, next) => {
+    try {
+      const { activation_token } = req.body;
+      /* The jwt.verify function is then used to verify the activation_token. 
         This function decodes the token using the process.env.ACTIVATION_SECRET, 
         which is presumably a secret key stored in the application's environment variables. 
         If the token is valid, it will return an object representing the new user.
@@ -95,44 +93,42 @@ router.post("/create-user", upload.single("file"), async (req, res, next) => {
         https://awesomejs.dev/for/react/
         https://www.npmjs.com/package/react-toastify
          */
-        const newUser = jwt.verify(
-          activation_token,
-          process.env.ACTIVATION_SECRET
-        );
+      const newUser = jwt.verify(
+        activation_token,
+        process.env.ACTIVATION_SECRET
+      );
 
-        if (!newUser) {
-          return next(new ErrorHandler("Invalid token", 400));
-        }
-        //If the token is valid, the code extracts the user's name, email, password, and avatar from the decoded newUser object.
-        const { name, email, password, avatar } = newUser;
-
-        let user = await User.findOne({ email });
-
-        if (user) {
-          return next(new ErrorHandler("User already exists", 400));
-        }
-        user = await User.create({
-          name,
-          email,
-          avatar,
-          password,
-        });
-
-        sendToken(user, 201, res);
-      } catch (error) {
-        return next(new ErrorHandler(error.message, 500));
+      if (!newUser) {
+        return next(new ErrorHandler("Invalid token", 400));
       }
-    })
-  );
+      //If the token is valid, the code extracts the user's name, email, password, and avatar from the decoded newUser object.
+      const { name, email, password, avatar } = newUser;
+
+      let user = await User.findOne({ email });
+
+      if (user) {
+        return next(new ErrorHandler("User already exists", 400));
+      }
+      user = await User.create({
+        name,
+        email,
+        avatar,
+        password,
+      });
+
+      sendToken(user, 201, res);
+    } catch (error) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  })
+);
 
 // login user
 router.post(
   "/login-user",
   catchAsyncErrors(async (req, res, next) => {
     try {
-     
       const { email, password } = req.body;
-      
 
       if (!email || !password) {
         return next(new ErrorHandler("Please provide the all fields!", 400));
@@ -159,4 +155,27 @@ router.post(
   })
 );
 
+//load user information
+
+router.get(
+  "/getuser",
+  isAuthenticated,
+  catchAsyncErrors(async (req, res, next) => {
+    try {
+      const user = await User.findById(req.user.id);
+
+      // console.log("User Information" + user);
+
+      if (!user) {
+        return next(new ErrorHandler("User doesn't exists!", 400));
+      }
+      res.status(201).json({
+        success: true,
+        user,
+      });
+    } catch (error) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  })
+);
 module.exports = router;
